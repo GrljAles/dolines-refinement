@@ -8,9 +8,10 @@ import scipy.ndimage
 from scipy.signal import find_peaks
 from sklearn.linear_model import LinearRegression
 
+
 def openRasterOneBand(inRasterP):
     """
-    Does the same as openRasterMultiBand only it is optimized for single band rasters.
+    Opens single band raster and returns its data and metadata.
     Paramerters:
         inRasterP - path to raster file.
      Returns:
@@ -28,7 +29,7 @@ def openRasterOneBand(inRasterP):
     inRaster = gdal.Open(inRasterP, GA_ReadOnly)
     inBand = inRaster.GetRasterBand(1)
     inNoData = inBand.GetNoDataValue()
-    inArray = inBand.ReadAsArray().astype('float32')
+    inArray = inBand.ReadAsArray().astype("float32")
     inExtension = os.path.splitext(inRasterP)[1]
     inCols = inRaster.RasterXSize
     inRows = inRaster.RasterYSize
@@ -40,7 +41,8 @@ def openRasterOneBand(inRasterP):
     del inRaster
     del inBand
 
-    return (inArray,inCols,inRows,inBands,inNoData,inExtension,inDriver,inGeotransform,inProj,inProjRef)
+    return (inArray, inCols, inRows, inBands, inNoData, inExtension, inDriver, inGeotransform, inProj, inProjRef)
+
 
 def moving_average(a, n=3):
     """
@@ -53,6 +55,7 @@ def moving_average(a, n=3):
     ret[n:] = ret[n:] - ret[:-n]
 
     return ret[n - 1:] / n
+
 
 def point_on_circle(center, angle, radius):
     """
@@ -67,7 +70,8 @@ def point_on_circle(center, angle, radius):
     x = center[0] + (radius * cos(angle))
     y = center[1] + (radius * sin(angle))
 
-    return x,y
+    return x, y
+
 
 def extendedProfile(p0, p1, extension, surface):
     """
@@ -76,30 +80,32 @@ def extendedProfile(p0, p1, extension, surface):
     :param p1: Coordinate pair of second point defining the profile, given as a list of  y and x
     :param extension: Factor for profile length multiplication. Given as a positive number.
     :param surface: 2d numpy array to calculate profile over.
-    :return: 1d array of surface values along profile, porfile length and it's angle.
+    :return: 1d array of surface values along profile, porfile length and it"s angle.
     """
-    ## Ger single coordinates from pairs.
+    # Ger single coordinates from pairs.
     y0 = p0[0]
     x0 = p0[1]
     y1 = p1[0]
     x1 = p1[1]
 
-    ## Distance between p0 and p1.
+    # Distance between p0 and p1.
     length = int(np.hypot(y1 - y0, x1 - x0))
 
-    ## Get azimuth between p0 and p1
+    # Get azimuth between p0 and p1
     angle = degrees(atan2((x1 - x0), (y1 - y0)))
 
-    ## Calculate new point coordinates using extnesion distance in azimuth direction.
+    # Calculate new point coordinates using extnesion distance in azimuth direction.
     y2, x2 = point_on_circle([y0, x0], angle, length * extension)
 
-    ## Coordinate pairs along profile to extract DEM values at.
-    x, y = np.linspace(x0, x2, length * extension), np.linspace(y0, y2, length * extension)
+    # Coordinate pairs along profile to extract DEM values at.
+    x, y = np.linspace(
+        x0, x2, length * extension), np.linspace(y0, y2, length * extension)
 
     # Extract the values along the line
     profileValues = scipy.ndimage.map_coordinates(surface, np.vstack((x, y)))
 
     return profileValues, length, angle
+
 
 def linearProjection(k, kx, n):
     """
@@ -111,6 +117,7 @@ def linearProjection(k, kx, n):
     """
     return k * kx + n
 
+
 def regressionLine(xData, yData):
     """
     Calculates a linear regression parameters and returns a values array of the line of best fit estimate.
@@ -118,33 +125,37 @@ def regressionLine(xData, yData):
     :param yData: Dependant variable as numpy array.
     :return: A numpy array with the linear projection of x and y data.
     """
-    ## Fit x and y data
+    # Fit x and y data
     linModel = LinearRegression().fit(xData, yData)
-    ## Calcualte linear projection of every pair.
+    # Calcualte linear projection of every pair.
     regLin = linearProjection(linModel.coef_[0], xData, linModel.intercept_)
-    ## reshape to get a 1d array.
+    # reshape to get a 1d array.
     regLin = regLin.reshape(1, -1)[0]
 
     return regLin
 
-## Create results shapefile.
+
+# Create results shapefile.
 driver = ogr.GetDriverByName("Esri Shapefile")
-resDataset = driver.CreateDataSource('C:\\Users\\agrlj\\Desktop\\Doktorski\\1Letnik\\1Metode\\Analiza\\podatki\\rezultati\\432_38_2.shp')
-resLayer = resDataset.CreateLayer('', None, ogr.wkbPolygon)
+# <= Define full path to putput shapefile here.
+resDataset = driver.CreateDataSource("path/to/result/shapefile.shp")
+resLayer = resDataset.CreateLayer("", None, ogr.wkbPolygon)
 # Create the id field.
-resLayer.CreateField(ogr.FieldDefn('id', ogr.OFTInteger))
+resLayer.CreateField(ogr.FieldDefn("id", ogr.OFTInteger))
 
-## Define inputs.
-raster = openRasterOneBand('C:\\Users\\agrlj\\Desktop\\Doktorski\\1Letnik\\1Metode\\Analiza\\podatki\\dmv\\432_38.tif')
-depressionDataset = ogr.Open('C:\\Users\\agrlj\\Desktop\\Doktorski\\1Letnik\\1Metode\\Analiza\\podatki\\vrtace\\432_38_5v3.shp')
+# Define inputs.
+# <= Define full path to input DEM that will be used for evelation inforamtion extraction.
+raster = openRasterOneBand("path/to/input/DEM.tif")
+# <= Define full path to input polygon shapefile defining the basic shapes of the terrain depressions.
+depressionDataset = ogr.Open("path/to/input/terrain/depressions/shapefile.shp")
 
-## Get raster as numpy array and iterate depressions features.
+# Get raster as numpy array and iterate depressions features.
 z = raster[0]
 
-## Fix noData values to raster average.
+# Fix noData values to raster average.
 z = np.where(z == raster[4], np.mean(z[z > raster[4]]), z)
 
-## Get the upper left cornner coordinate of the input raster.
+# Get the upper left cornner coordinate of the input raster.
 ulx, uly = raster[7][3], raster[7][0]
 
 layer = depressionDataset.GetLayer()
@@ -153,36 +164,36 @@ id = 0
 for feature in layer:
     geom = feature.GetGeometryRef()
 
-    ## Calculate the minimum bounding geomerty (convex hull) around polygon to simplify its geometry and remove possible comlications caused by its jagged rim.
+    # Calculate the minimum bounding geomerty (convex hull) around polygon to simplify its geometry and remove possible comlications caused by its jagged rim.
     geom.ConvexHull()
-    ## Provide polygon rim with sufficient vertices to calculate as many profiles as possible.
+    # Provide polygon rim with sufficient vertices to calculate as many profiles as possible.
     geom.Segmentize(1)
     geom.CloseRings()
-    
-    ## Get depression center point coordinates and convert it to the image pixel coordinates using raster upper left corner coorddinates.
+
+    # Get depression center point coordinates and convert it to the image pixel coordinates using raster upper left corner coorddinates.
     cy, cx, cz = geom.Centroid().GetPoint()
     x0, y0 = np.abs(cx - ulx), np.abs(cy - uly)
 
-    ## Geometry for storing the results
+    # Geometry for storing the results
     peakRing = ogr.Geometry(ogr.wkbLinearRing)
 
-    ## Iterate over each vertex of depressions rim.
+    # Iterate over each vertex of depressions rim.
     for depressioni in geom:
         for p in range(0, depressioni.GetPointCount()):
-            ## Get the coordinates and convert to pixel coordinates.
+            # Get the coordinates and convert to pixel coordinates.
             y1, x1, z1 = depressioni.GetPoint(p)
             y1, x1 = np.abs(y1 - uly), np.abs(x1 - ulx)
 
-            ## Extract the profile values.
+            # Extract the profile values.
             zi, length, angle = extendedProfile([y0, x0], [y1, x1], 4, z)
 
-            ## Smoothen the profile and calculate its slope (first derivative).
+            # Smoothen the profile and calculate its slope (first derivative).
             zi = moving_average(zi, n=3)
             mi = np.diff(zi) / np.diff(range(len(zi)))
 
-            ## Distribute length values along profile.
+            # Distribute length values along profile.
             xi = np.arange(len(zi)).reshape((-1, 1))
-            ## Calculate the linear regression parameters over the profile.
+            # Calculate the linear regression parameters over the profile.
             rl = regressionLine(xi, zi)
 
             """
@@ -226,7 +237,7 @@ for feature in layer:
     defn = resLayer.GetLayerDefn()
     feat = ogr.Feature(defn)
     defn = None
-    feat.SetField('id', id)
+    feat.SetField("id", id)
     feat.SetGeometry(poly)
     poly = None
     resLayer.CreateFeature(feat)
