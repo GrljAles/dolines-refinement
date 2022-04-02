@@ -11,8 +11,9 @@ The development of remote sensing methods, computers and spatial data processing
 The results of the research were published in the Dela: https://revije.ff.uni-lj.si/Dela/article/view/9737 in Slovenian language, abstract and sumary are translated to english though.
 
 Inputs for the script are:
-    1. Polygon shapefile with polygons defining depressions rims delineated using simple hydrological filling of the input DEM, subtracting the original input DEM from it, reclassifying the result, and exporting to vector.
 
-    2. Raster DEM used for delineating dolines at first stage.
+1. Polygon shapefile with polygons defining depressions rims delineated using simple hydrological filling of the input DEM, subtracting the original input DEM from it, reclassifying the result, and exporting to vector.
+
+2. Raster DEM used for delineating dolines at first stage.
 
 Output is polygon shapefile with refined depression rims/edges that are correctly defined also for depresions on slopes.
