@@ -146,6 +146,7 @@ resLayer.CreateField(ogr.FieldDefn("id", ogr.OFTInteger))
 # Define inputs.
 # <= Define full path to input DEM that will be used for evelation inforamtion extraction.
 raster = openRasterOneBand("path/to/input/DEM.tif")
+
 # <= Define full path to input polygon shapefile defining the basic shapes of the terrain depressions.
 depressionDataset = ogr.Open("path/to/input/terrain/depressions/shapefile.shp")
 
